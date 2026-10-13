@@ -1,0 +1,31 @@
+name: checks
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: netwatch
+          POSTGRES_DB: netwatch_test
+          POSTGRES_PASSWORD: test-only-password
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U netwatch -d netwatch_test" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: test -z "$(gofmt -l cmd internal)"
+      - run: go vet ./...
+      - run: go test -race ./...
+        env:
+          NETWATCH_TEST_REDIS_ADDR: localhost:6379
+          NETWATCH_TEST_DATABASE_URL: postgres://netwatch:test-only-password@localhost:5432/netwatch_test?sslmode=disable
+      - run: go build ./cmd/...

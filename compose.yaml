@@ -2,7 +2,7 @@ services:
   redis:
     image: redis:7.4
     ports:
-      - "127.0.0.1:6380:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]
@@ -11,6 +11,90 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: netwatch
+      POSTGRES_DB: netwatch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run ./scripts/setup.sh first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netwatch -d netwatch"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  server:
+    image: netwatch:local
+    build: .
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:8080"
+    environment:
+      HTTP_ADDR: 0.0.0.0:8080
+      REDIS_ADDR: redis:6379
+      DATABASE_URL: postgres://netwatch:${POSTGRES_PASSWORD}@postgres:5432/netwatch?sslmode=disable
+      NETWATCH_API_TOKEN: ${NETWATCH_API_TOKEN:?Run ./scripts/setup.sh first}
+      AI_ENABLED: ${AI_ENABLED:-true}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      model-init:
+        condition: service_completed_successfully
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  worker:
+    image: netwatch:local
+    command: ["/app/worker", "-redis-addr", "redis:6379", "-consumer", "detector-1"]
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  simulator:
+    image: netwatch:local
+    command: ["/app/simulator", "-redis-addr", "redis:6379"]
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai"]
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  model-init:
+    image: ollama/ollama:latest
+    profiles: ["ai"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ["pull", "${OLLAMA_MODEL:-qwen2.5:0.5b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
 
 volumes:
   redis_data:
+  postgres_data:
+  ollama_data:

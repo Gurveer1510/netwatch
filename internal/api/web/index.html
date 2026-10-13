@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NetWatch · Network health</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <section id="login" class="login">
+      <div class="login-card">
+        <div class="brand-icon">N</div>
+        <p class="eyebrow">NETWATCH</p>
+        <h1>Your network.<br />A clearer picture.</h1>
+        <p class="muted">
+          Sign in to monitor devices, inspect incidents, and review local AI
+          analysis.
+        </p>
+        <form id="login-form">
+          <label for="token">Access token</label
+          ><input
+            id="token"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Token from your .env file"
+            required
+          /><button class="primary" type="submit">Open dashboard →</button>
+          <p id="login-error" role="alert"></p>
+        </form>
+        <p class="small muted">
+          Local monitoring workspace · Token stays out of browser storage
+        </p>
+      </div>
+    </section>
+    <div id="app" hidden>
+      <aside class="sidebar">
+        <a href="/" class="brand"><span class="brand-icon">N</span>NetWatch</a>
+        <p class="small muted">NETWORK OPERATIONS</p>
+        <nav>
+          <a href="#overview" class="active">◈ &nbsp; Overview</a
+          ><a href="#fleet">▤ &nbsp; Device fleet</a
+          ><a href="#incidents">⚑ &nbsp; Incidents</a>
+        </nav>
+        <div class="sidebar-bottom">
+          <span class="dot"></span> Local workspace
+          <p class="small muted">Go · Redis · PostgreSQL</p>
+          <button id="logout" class="quiet">Sign out</button>
+        </div>
+      </aside>
+      <main id="overview">
+        <header>
+          <div>
+            <p class="eyebrow">NETWORK INTELLIGENCE</p>
+            <h1>Health overview</h1>
+            <p class="muted">
+              Live signals. Traceable incidents. Assisted investigation.
+            </p>
+          </div>
+          <div class="header-actions">
+            <span id="connection" class="badge">Connecting</span
+            ><button id="refresh" class="quiet">↻ Refresh</button>
+          </div>
+        </header>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <section class="stats">
+          <article>
+            <span class="muted">Reporting devices</span
+            ><strong id="device-count">—</strong
+            ><small id="device-note">Waiting for readings</small>
+          </article>
+          <article>
+            <span class="muted">Average CPU</span><strong id="avg-cpu">—</strong
+            ><small>Latest reading per device</small>
+          </article>
+          <article>
+            <span class="muted">Open incidents</span
+            ><strong id="open-count">—</strong
+            ><small>Among the latest 100 incidents</small>
+          </article>
+          <article>
+            <span class="muted">Analysis engine</span
+            ><strong id="ai-mode" class="engine">—</strong
+            ><small id="ai-model">Local model</small>
+          </article>
+        </section>
+        <section class="panel" id="fleet">
+          <div class="section-heading">
+            <div>
+              <h2>Device fleet</h2>
+              <p class="muted small">
+                Select a device to explore its recent readings.
+              </p>
+            </div>
+            <span id="updated" class="small muted"></span>
+          </div>
+          <div id="devices" class="device-grid">
+            <p class="muted">Waiting for telemetry…</p>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <h2 id="chart-title">Telemetry timeline</h2>
+              <p id="chart-subtitle" class="small muted">
+                Latest 120 readings · percentages
+              </p>
+            </div>
+            <div class="legend">
+              <span class="cpu-key">● CPU</span
+              ><span class="mem-key">● Memory</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <svg
+              id="chart"
+              viewBox="0 0 900 220"
+              role="img"
+              aria-label="CPU and memory history"
+            ></svg>
+            <p id="chart-empty" class="muted">
+              Choose a device to view history.
+            </p>
+          </div>
+          <div class="chart-footer">
+            <span id="chart-start">—</span
+            ><span>CPU incident threshold: 90%</span
+            ><span id="chart-end">—</span>
+          </div>
+        </section>
+        <section class="panel" id="incidents">
+          <div class="section-heading">
+            <div>
+              <h2>Incident inbox</h2>
+              <p class="muted small">
+                Each incident links to an observed metric. AI suggestions need
+                operator review.
+              </p>
+            </div>
+            <label class="filter-label"
+              >Show
+              <select id="status-filter">
+                <option value="">All incidents</option>
+                <option value="open">Open</option>
+                <option value="resolved">Resolved</option>
+              </select></label
+            >
+          </div>
+          <div id="incident-list"></div>
+        </section>
+        <footer>
+          NetWatch · Source labels distinguish simulated readings from real
+          collectors. <span id="last-poll"></span>
+        </footer>
+      </main>
+    </div>
+    <dialog id="detail">
+      <div class="detail-head">
+        <span class="eyebrow">INCIDENT INVESTIGATION</span
+        ><button id="close-detail" class="quiet" aria-label="Close incident">
+          ✕
+        </button>
+      </div>
+      <h2 id="detail-title"></h2>
+      <div id="detail-meta" class="muted small"></div>
+      <div id="detail-body"></div>
+      <div class="detail-actions">
+        <button id="resolve" class="primary">Resolve incident</button
+        ><button id="reanalyze" class="quiet">Request analysis</button>
+      </div>
+    </dialog>
+  </body>
+</html>

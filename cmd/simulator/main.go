@@ -12,17 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Gurveer1510/netwatch/internal/telemetry"
 	"github.com/redis/go-redis/v9"
 )
 
-// Telemetry represents simulated readings, not measurements from a real device.
-type Telemetry struct {
-	DeviceID      string    `json:"device_id"`
-	Timestamp     time.Time `json:"timestamp"`
-	CPUPercent    float64   `json:"cpu_percent"`
-	MemoryPercent float64   `json:"memory_percent"`
-	PacketLossPct float64   `json:"packet_loss_pct"`
-}
+// Telemetry uses the shared schema consumed by the detection worker.
+type Telemetry = telemetry.Telemetry
 
 func main() {
 	if err := run(); err != nil {
@@ -109,6 +104,7 @@ func generateTelemetry(deviceID string, reading int, now time.Time) Telemetry {
 		cpu = 92 + rand.Float64()*6
 	}
 	return Telemetry{
+		Source:        "simulated",
 		DeviceID:      deviceID,
 		Timestamp:     now.UTC(),
 		CPUPercent:    cpu,
